@@ -8,16 +8,22 @@ import (
 )
 
 type Products struct {
-	Id   int
-	Name string
-	Desc string
+	Id    int
+	Name  string
+	Desc  string
+	Image string
 }
 
 type UserCart struct {
-	Id        int
-	ProductID int
-	Username  string
-	Quantity  int
+	Id       int
+	Product  Products
+	Username string
+	Quantity int
+}
+
+type CartData struct {
+	UserCart  []UserCart
+	CartCount int
 }
 
 type IndexData struct {
@@ -57,14 +63,43 @@ func cartData(base string) ([]UserCart, error) {
 	if err != nil {
 		return nil, err
 	}
+	var id int
 
 	for checkQuery.Next() {
 		elem := UserCart{}
-		err := checkQuery.Scan(&elem.Id, &elem.ProductID, &elem.Username, &elem.Quantity)
+		err := checkQuery.Scan(&elem.Id, &id, &elem.Username, &elem.Quantity)
+		if err != nil {
+			return nil, err
+		}
+		elem.Product, err = productById(id)
 		if err != nil {
 			return nil, err
 		}
 		data = append(data, elem)
+	}
+	return data, nil
+}
+
+func productById(id int) (Products, error) {
+	data := Products{}
+
+	db, err := connect()
+	defer db.Close()
+	if err != nil {
+		return data, err
+	}
+
+	searchPrepare, _ := db.Prepare("SELECT * FROM products WHERE id=?")
+	searchQuery, err := searchPrepare.Query(id)
+	defer searchQuery.Close()
+	if err != nil {
+		return data, err
+	}
+	if searchQuery.Next() {
+		err := searchQuery.Scan(&data.Id, &data.Name, &data.Desc, &data.Image)
+		if err != nil {
+			return data, err
+		}
 	}
 	return data, nil
 }
@@ -86,7 +121,7 @@ func productList() ([]Products, error) {
 
 	for res.Next() {
 		elem := Products{}
-		err := res.Scan(&elem.Id, &elem.Name, &elem.Desc)
+		err := res.Scan(&elem.Id, &elem.Name, &elem.Desc, &elem.Image)
 		if err != nil {
 			return nil, err
 		}
@@ -110,6 +145,7 @@ func main() {
 	mux.HandleFunc("/login", HandlerCart)
 	mux.HandleFunc("/cart", HandlerCart)
 	mux.HandleFunc("/api/add", HandlerApiAdd)
+	mux.HandleFunc("/api/remove", HandlerApiRemove)
 	mux.HandleFunc("/api/setcookie", HandlerApiSetCookie)
 
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("dependency"))))
