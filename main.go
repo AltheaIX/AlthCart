@@ -22,6 +22,13 @@ func connect() (*sql.DB, error) {
 	return db, nil
 }
 
+func GetOnly(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != "GET" {
+		return false
+	}
+	return true
+}
+
 func productList() ([]Products, error) {
 	data := []Products{}
 
@@ -31,7 +38,7 @@ func productList() ([]Products, error) {
 		return nil, err
 	}
 
-	res, err := db.Query("SELECT * FROM products")
+	res, err := db.Query("SELECT * FROM products LIMIT 10")
 	defer res.Close()
 	if err != nil {
 		return nil, err
@@ -49,6 +56,11 @@ func productList() ([]Products, error) {
 }
 
 func HandlerIndex(w http.ResponseWriter, r *http.Request) {
+	if !GetOnly(w, r) {
+		http.Error(w, "Invalid method, only GET is allowed.", http.StatusBadRequest)
+		return
+	}
+
 	tmpl := template.Must(template.New("index.html").ParseFiles("template/index.html"))
 	data, err := productList()
 	if err != nil {
@@ -62,6 +74,10 @@ func HandlerIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandlerCart(w http.ResponseWriter, r *http.Request) {
+	if !GetOnly(w, r) {
+		return
+	}
+
 	tmpl := template.Must(template.New("index").ParseFiles("template/index.html"))
 	if err := tmpl.Execute(w, nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
