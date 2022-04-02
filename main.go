@@ -49,7 +49,7 @@ func productList() ([]Products, error) {
 }
 
 func HandlerIndex(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.New("index.html").ParseFiles("index.html"))
+	tmpl := template.Must(template.New("index.html").ParseFiles("template/index.html"))
 	data, err := productList()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -62,7 +62,7 @@ func HandlerIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandlerCart(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.New("index").ParseFiles("index.html"))
+	tmpl := template.Must(template.New("index").ParseFiles("template/index.html"))
 	if err := tmpl.Execute(w, nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
